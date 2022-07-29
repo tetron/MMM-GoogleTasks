@@ -5,7 +5,7 @@ Module.register("MMM-GoogleTasks",{
 		listID: "", // List ID (see authenticate.js)
 		maxResults: 10,		
 		showCompleted: false, //set showCompleted and showHidden true
-		ordering: "myorder", // Order by due date or by 'my order' NOT IMPLEMENTED
+		ordering: "myorder", // Order by due date, title, updated timestamp or by 'my order'
 		dateFormat: "MMM Do", // Format to display dates (moment.js formats)
 		updateInterval: 10000, // Time between content updates (millisconds)
 		animationSpeed: 2000, // Speed of the update animation (milliseconds)
@@ -86,27 +86,33 @@ Module.register("MMM-GoogleTasks",{
 		}
 
 		// Sort attributes like they are shown in the Tasks app
-		if(this.config.ordering === 'myorder') {
-			let temp = [];
-			this.tasks
-				.filter(task => task.parent === undefined) // Filter tasks to only parent tasks
-				.sort((a, b) => (a.position > b.position) ? 1 : -1) // Sort parent tasks by position
-				.map((task) => { // Map over parents to create reordered list of tasks
-					temp.push(task);
+		switch(this.config.ordering) {
+			case 'myorder':
+				let temp = [];
+				this.tasks
+					.filter(task => task.parent === undefined) // Filter tasks to only parent tasks
+					.sort((a, b) => (a.position > b.position) ? 1 : -1) // Sort parent tasks by position
+					.map((task) => { // Map over parents to create reordered list of tasks
+						temp.push(task);
+	
+						// Loop through all tasks to find and sort subtasks for each parent
+						let subList = [];
+						this.tasks.map((subtask) => {
+							if (subtask.parent === task.id) {
+								subList.push(subtask);
+							}
+						});
+						subList.sort((a, b) => a.position > b.position ? 1 : -1);
+						temp.push(...subList);
+				});
+				this.tasks = temp;
+				break;
 
-					// Loop through all tasks to find and sort subtasks for each parent
-					let subList = [];
-					this.tasks.map((subtask) => {
-						if (subtask.parent === task.id) {
-							subList.push(subtask);
-						}
-					});
-					subList.sort((a, b) => (a.position > b.position) ? 1 : -1);
-					temp.push(...subList);
-			});
-			this.tasks = temp;
-		} else {
-			this.tasks = this.tasks.sort((item) => item.position);
+			case 'due':
+			case 'title':
+			case 'updated':
+				this.tasks = this.tasks.sort((a, b) => a[this.config.ordering] > b[this.config.ordering] ? 1 : -1);
+				break;
 		}
 
 		let titleWrapper, dateWrapper, noteWrapper;
