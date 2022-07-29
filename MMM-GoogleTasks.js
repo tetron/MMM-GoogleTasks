@@ -94,7 +94,7 @@ Module.register("MMM-GoogleTasks", {
         this.tasks
           .filter((task) => task.parent === undefined) // Filter tasks to only parent tasks
           .sort((a, b) => (a.position > b.position ? 1 : -1)) // Sort parent tasks by position
-          .map((task) => {
+          .forEach((task) => {
             // Map over parents to create reordered list of tasks
             temp.push(task);
 
