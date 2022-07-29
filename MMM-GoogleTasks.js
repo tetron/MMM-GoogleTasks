@@ -32,7 +32,6 @@ Module.register("MMM-GoogleTasks",{
 
 	// Define start sequence
 	start: function() {
-
 		Log.info("Starting module: " + this.name);
 		this.tasks;
 		this.loaded = false;
@@ -52,42 +51,33 @@ Module.register("MMM-GoogleTasks",{
 	},
 
 	socketNotificationReceived: function(notification, payload) {
-		var self = this;
-
 		if (notification === "SERVICE_READY") {
-			
-			self.sendSocketNotification("REQUEST_UPDATE", self.config);
+			this.sendSocketNotification("REQUEST_UPDATE", this.config);
 			
 			// Create repeating call to node_helper get list
 			setInterval(function() {
-				self.sendSocketNotification("REQUEST_UPDATE", self.config);
-			}, self.config.updateInterval);
+				this.sendSocketNotification("REQUEST_UPDATE", this.config);
+			}, this.config.updateInterval);
 
 		// Check if payload id matches module id
-		} else if (notification === "UPDATE_DATA" && payload.id === self.config.listID) {
+		} else if (notification === "UPDATE_DATA" && payload.id === this.config.listID) {
 			// Handle new data
-			self.loaded = true;
+			this.loaded = true;
 			if (payload.items) {
-				self.tasks = payload.items;
-				self.updateDom(self.config.animationSpeed)
+				this.tasks = payload.items;
+				this.updateDom(this.config.animationSpeed)
 			} else {
-				self.tasks = null;
+				this.tasks = null;
 				Log.info("No tasks found.")
-				self.updateDom(self.config.animationSpeed)
+				this.updateDom(this.config.animationSpeed)
 			}
 		}
 	},
 
 	getDom: function() {
-
-		var wrapper = document.createElement('div');
+		let wrapper = document.createElement('div');
 		wrapper.className = "container ";
 		wrapper.className += this.config.tableClass;
-
-		var numTasks = 0;
-		if(this.tasks) {
-			var numTasks = Object.keys(this.tasks).length;
-		}
 
 		if (!this.tasks) {
 			wrapper.innerHTML = (this.loaded) ? "EMPTY" : "LOADING";
@@ -95,52 +85,49 @@ Module.register("MMM-GoogleTasks",{
 			return wrapper;
 		}
 
-		if (this.config.ordering === "myorder") { 
+		this.tasks = this.tasks.sort((item) => item.position);
 
-			var titleWrapper, dateWrapper, noteWrapper;
+		let titleWrapper, dateWrapper, noteWrapper;
 
-			//this.tasks.forEach((item, index) => {
-				for (i = 0; i < numTasks; i++) {
-				item = this.tasks[i];
-				titleWrapper = document.createElement('div');
-				titleWrapper.className = "item title";
-				titleWrapper.innerHTML = "<i class=\"fa fa-circle-thin\" ></i>" + item.title;
+		this.tasks.forEach((item, index) => {
+			titleWrapper = document.createElement('div');
+			titleWrapper.className = "item title";
+			titleWrapper.innerHTML = "<i class=\"fa fa-circle-thin\" ></i>" + item.title;
 
-				// If item is completed change icon to checkmark
-				if (item.status === 'completed') {
-					titleWrapper.innerHTML = "<i class=\"fa fa-check\" ></i>" + item.title;
-				}
+			// If item is completed change icon to checkmark
+			if (item.status === 'completed') {
+				titleWrapper.innerHTML = "<i class=\"fa fa-check\" ></i>" + item.title;
+			}
 
-				if (item.parent) {
-					titleWrapper.className = "item child";
-				}
+			if (item.parent) {
+				titleWrapper.className = "item child";
+			}
 
-				if (item.notes) {
-					noteWrapper = document.createElement('div');
-					noteWrapper.className = "item notes light";
-					noteWrapper.innerHTML = item.notes.replace(/\n/g , "<br>");
-					titleWrapper.appendChild(noteWrapper);
-				}
+			if (item.notes) {
+				noteWrapper = document.createElement('div');
+				noteWrapper.className = "item notes light";
+				noteWrapper.innerHTML = item.notes.replace(/\n/g , "<br>");
+				titleWrapper.appendChild(noteWrapper);
+			}
 
-				dateWrapper = document.createElement('div');
-				dateWrapper.className = "item date light";
+			dateWrapper = document.createElement('div');
+			dateWrapper.className = "item date light";
 
-				if (item.due) {
-					var date = moment(item.due);
-					dateWrapper.innerHTML = date.utc().format(this.config.dateFormat);
-				}
+			if (item.due) {
+				let date = moment(item.due);
+				dateWrapper.innerHTML = date.utc().format(this.config.dateFormat);
+			}
 
-				// Create borders between parent items
-				if (numTasks < this.tasks.length-1 && !this.tasks[numTasks+1].parent) {
-					titleWrapper.style.borderBottom = "1px solid #666";
-					dateWrapper.style.borderBottom = "1px solid #666";
-				}
+			// Create borders between parent items
+			if (index < this.tasks.length-1 && !this.tasks[index + 1].parent) {
+				titleWrapper.style.borderBottom = "1px solid #666";
+				dateWrapper.style.borderBottom = "1px solid #666";
+			}
 
-				wrapper.appendChild(titleWrapper);
-				wrapper.appendChild(dateWrapper);
-			};
+			wrapper.appendChild(titleWrapper);
+			wrapper.appendChild(dateWrapper);
+		});
 
-			return wrapper;
-		}
+		return wrapper;
 	}
 });
