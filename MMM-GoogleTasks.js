@@ -85,7 +85,29 @@ Module.register("MMM-GoogleTasks",{
 			return wrapper;
 		}
 
-		this.tasks = this.tasks.sort((item) => item.position);
+		// Sort attributes like they are shown in the Tasks app
+		if(this.config.ordering === 'myorder') {
+			let temp = [];
+			this.tasks
+				.filter(task => task.parent === undefined) // Filter tasks to only parent tasks
+				.sort((a, b) => (a.position > b.position) ? 1 : -1) // Sort parent tasks by position
+				.map((task) => { // Map over parents to create reordered list of tasks
+					temp.push(task);
+
+					// Loop through all tasks to find and sort subtasks for each parent
+					let subList = [];
+					this.tasks.map((subtask) => {
+						if (subtask.parent === task.id) {
+							subList.push(subtask);
+						}
+					});
+					subList.sort((a, b) => (a.position > b.position) ? 1 : -1);
+					temp.push(...subList);
+			});
+			this.tasks = temp;
+		} else {
+			this.tasks = this.tasks.sort((item) => item.position);
+		}
 
 		let titleWrapper, dateWrapper, noteWrapper;
 
