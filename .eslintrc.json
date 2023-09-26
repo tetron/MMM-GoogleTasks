@@ -1,0 +1,27 @@
+{
+	"extends": ["eslint:recommended", "prettier", "plugin:@typescript-eslint/recommended", "plugin:sonarjs/recommended"],
+	"plugins": ["@typescript-eslint", "sonarjs"],
+	"root": true,
+	"env": {
+		"browser": true,
+		"es6": true,
+		"mocha": true,
+		"node": true
+	},
+	"globals": {
+		"config": true,
+		"Log": true,
+		"MM": true,
+		"Module": true,
+		"moment": true
+	},
+	"parser": "@typescript-eslint/parser",
+	"parserOptions": {
+		"sourceType": "module",
+		"ecmaVersion": 2017,
+		"ecmaFeatures": {
+			"globalReturn": true
+		}
+	},
+	"rules": {}
+}
