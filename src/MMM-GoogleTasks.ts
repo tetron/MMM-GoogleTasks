@@ -12,16 +12,13 @@ Module.register<Config>("MMM-GoogleTasks", {
   defaults: {
     listID: "", // List ID (see authenticate.js)
     maxResults: 10,
-    useHeader: true, // false if you don't want a header
-    headerText: undefined,
     showCompleted: false, //set showCompleted and showHidden true
     ordering: "myorder", // Order by due date, title, updated timestamp or by 'my order'
-    dateFormat: "MMM Do", // Format to display dates (moment.js formats)
+    dateFormat: "LLL do", // Format to display dates (date-fns formats)
     updateInterval: 60000, // Time between content updates (millisconds)
     animationSpeed: 2000, // Speed of the update animation (milliseconds)
-    tableClass: "small", // Name of the classes issued from main.css
     initialLoadDelay: 1500,
-    maxWidth: "300px",
+    maxWidth: "450px",
     plannedTasks: {
       enable: false,
       includedLists: [".*"],
@@ -62,12 +59,11 @@ Module.register<Config>("MMM-GoogleTasks", {
   // Define start sequence
   start: function () {
     this.getLogger().info("Starting module: " + this.name);
-    this.sendSocketNotification(ModuleNotification.CONFIG, this.config)
+    this.sendSocketNotification(ModuleNotification.CONFIG, this.config);
     this.scheduleUpdate(this.config.initialLoadDelay);
     this.isLoaded = false;
   },
 
-  
   scheduleUpdate: function (delay?: number) {
     if (this.isScheduled) {
       return;
@@ -109,8 +105,6 @@ Module.register<Config>("MMM-GoogleTasks", {
     if (!this.isLoaded) {
       return getLoadingView(this.config);
     }
-    return getTaskView(this.taskData, this.config);
-  },
-
-
+    return getTaskView(this.taskData, this.config, this.config.plannedTasks.enable);
+  }
 });

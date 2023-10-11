@@ -1,3 +1,4 @@
+import { format, formatDistanceToNowStrict, parseJSON, addDays, isBefore, isAfter } from "date-fns";
 import { AppearanceConfig } from "../types/Config";
 import { TaskData, Task } from "../types/Display";
 
@@ -48,107 +49,107 @@ import { TaskData, Task } from "../types/Display";
 //   return icon;
 // };
 
-const getWrapperElement = (config: AppearanceConfig): HTMLElement => {
+export const getLoadingView = (config: AppearanceConfig): HTMLElement => {
   const wrapper = document.createElement("div");
   wrapper.className = "wrapper";
   wrapper.style.maxWidth = config.maxWidth ?? "auto";
 
-  return wrapper;
-};
-
-export const getLoadingView = (config: AppearanceConfig): HTMLElement => {
-  const wrapper = getWrapperElement(config);
-  wrapper.innerHTML = config.headerText ?? "Google Tasks";
+  wrapper.innerHTML = "Loading Google Tasks";
   wrapper.classList.add("bright", "light", "small");
   return wrapper;
 };
 
-export const getTaskView = (taskData: TaskData, config: AppearanceConfig): HTMLElement => {
-  const wrapper = getWrapperElement(config);
+const performCustomSort = (originalTasks: Task[]): Task[] => {
+  const temp: Task[] = [];
+  originalTasks
+    .filter((task) => task.parent === undefined) // Filter tasks to only parent tasks
+    .sort((a, b) => (a.position > b.position ? 1 : -1)) // Sort parent tasks by position
+    .forEach((task) => {
+      // Map over parents to create reordered list of tasks
+      temp.push(task);
 
-  //  Header
-  if (config.useHeader) {
-    const header = document.createElement("header");
-    header.classList.add("header", "small", "dimmed", "bold");
-    const text = document.createElement("span");
-    text.innerHTML = config.headerText !== undefined && config.headerText !== "" ? config.headerText : "hi!"; //summary.title;
-    header.appendChild(text);
-    wrapper.appendChild(header);
-  }
+      // Loop through all tasks to find and sort subtasks for each parent
+      const subList: Task[] = [];
+      originalTasks.map((subtask) => {
+        if (subtask.parent === task.id) {
+          subList.push(subtask);
+        }
+      });
+      subList.sort((a, b) => (a.position > b.position ? 1 : -1));
+      temp.push(...subList);
+    });
+  return temp;
+};
 
-  let tasks: Task[] = [];
-
+const getOrderedTasks = (originalTasks: Task[], config: AppearanceConfig): Task[] => {
   // Sort attributes like they are shown in the Tasks app
   switch (config.ordering) {
     case "myorder":
-      let temp: Task[] = [];
-      taskData.tasks
-        .filter((task) => task.parent === undefined) // Filter tasks to only parent tasks
-        .sort((a, b) => (a.position > b.position ? 1 : -1)) // Sort parent tasks by position
-        .forEach((task) => {
-          // Map over parents to create reordered list of tasks
-          temp.push(task);
+      return performCustomSort(originalTasks);
 
-          // Loop through all tasks to find and sort subtasks for each parent
-          let subList: Task[] = [];
-          taskData.tasks.map((subtask) => {
-            if (subtask.parent === task.id) {
-              subList.push(subtask);
-            }
-          });
-          subList.sort((a, b) => (a.position > b.position ? 1 : -1));
-          temp.push(...subList);
-        });
-      tasks = temp;
-      break;
+    case "due":
+    case "title":
+    case "updated":
+      return originalTasks.sort((a, b) => {
+        const aValue = a[config.ordering as keyof Task] ?? "";
+        const bValue = b[config.ordering as keyof Task] ?? "";
 
-    // case "due":
-    // case "title":
-    // case "updated":
-    //   this.tasks = this.tasks.sort((a, b) => (a[this.config.ordering] > b[this.config.ordering] ? 1 : -1));
-    //   break;
+        return aValue > bValue ? 1 : -1;
+      });
+  }
+  return originalTasks;
+};
+
+const getItemView = (item: Task, config: AppearanceConfig, plannedView: boolean): HTMLElement => {
+  const itemWrapper = document.createElement("li");
+  itemWrapper.className = "item";
+  if (item.due) {
+    const dateWrapper = document.createElement("span");
+    const classNames = ["date", "light"];
+    const dueDate = addDays(parseJSON(item.due), 1);
+    const now = new Date();
+    const next24 = addDays(now, 1);
+
+    // overdue
+    if (isBefore(dueDate, now)) {
+      classNames.push("overdue");
+    }
+
+    // due in the next day
+    if (isBefore(dueDate, next24) && isAfter(dueDate, now)) {
+      classNames.push("soon");
+    }
+
+    if (isAfter(dueDate, next24)) {
+      classNames.push("upcoming");
+    }
+
+    console.log(`Due Date: ${dueDate}`);
+    if (plannedView) {
+      dateWrapper.innerHTML = formatDistanceToNowStrict(dueDate, { addSuffix: true });
+    } else {
+      dateWrapper.innerHTML = format(dueDate, config.dateFormat);
+    }
+
+    dateWrapper.className = classNames.join(" ");
+    itemWrapper.appendChild(dateWrapper);
+    itemWrapper.innerHTML += " - ";
   }
 
-  let titleWrapper, dateWrapper, noteWrapper;
+  itemWrapper.innerHTML += item.title;
+  return itemWrapper;
+};
 
-  tasks.forEach((item, index) => {
-    titleWrapper = document.createElement("div");
-    titleWrapper.className = "item title";
-    titleWrapper.innerHTML = '<i class="fa fa-circle-thin" ></i>' + item.title;
+export const getTaskView = (taskData: TaskData, config: AppearanceConfig, plannedView: boolean): HTMLElement => {
+  const wrapper = document.createElement("ul");
+  wrapper.style.maxWidth = config.maxWidth ?? "auto";
 
-    // If item is completed change icon to checkmark
-    if (item.status === "completed") {
-      titleWrapper.innerHTML = '<i class="fa fa-check" ></i>' + item.title;
-    }
+  const tasks: Task[] = getOrderedTasks(taskData.tasks, config);
 
-    if (item.parent) {
-      titleWrapper.className = "item child";
-    }
+  tasks.forEach((item) => {
+    const itemWrapper = getItemView(item, config, plannedView);
 
-    if (item.notes) {
-      noteWrapper = document.createElement("div");
-      noteWrapper.className = "item notes light";
-      noteWrapper.innerHTML = item.notes.replace(/\n/g, "<br>");
-      titleWrapper.appendChild(noteWrapper);
-    }
-
-    dateWrapper = document.createElement("div");
-    dateWrapper.className = "item date light";
-
-    if (item.due) {
-      //let date = moment(item.due);
-      //dateWrapper.innerHTML = date.utc().format(config.dateFormat);
-      dateWrapper.innerHTML = item.due
-    }
-
-    // Create borders between parent items
-    if (index < tasks.length - 1 && !tasks[index + 1].parent) {
-      titleWrapper.style.borderBottom = "1px solid #666";
-      dateWrapper.style.borderBottom = "1px solid #666";
-    }
-
-    wrapper.appendChild(titleWrapper);
-    wrapper.appendChild(dateWrapper);
+    wrapper.appendChild(itemWrapper);
   });
 
   return wrapper;

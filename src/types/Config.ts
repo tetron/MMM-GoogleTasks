@@ -3,14 +3,14 @@ import { Duration } from "date-fns";
 export interface PlannedTaskConfig {
   enable: boolean;
   includedLists: string[];
-  duration: Duration
+  duration: Duration;
 }
 
 export interface DataConfig {
   listID: string;
   showCompleted: boolean;
   maxResults: number;
-  plannedTasks: PlannedTaskConfig
+  plannedTasks: PlannedTaskConfig;
 }
 
 export const isDataConfig = (obj: unknown): boolean => {
@@ -24,11 +24,8 @@ export interface AppearanceConfig {
   dateFormat: string;
   updateInterval?: number;
   animationSpeed?: number;
-  tableClass?: string;
   initialLoadDelay?: number;
   maxWidth?: string;
-  useHeader: boolean;
-  headerText?: string;  
   ordering: string;
 }
 

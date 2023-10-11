@@ -3,6 +3,7 @@ import { LogWrapper } from "../utilities/LogWrapper";
 import * as Display from "../types/Display";
 import { Auth, google, tasks_v1, Common } from "googleapis";
 import { GaxiosError } from "googleapis-common";
+import { add, formatRFC3339 } from "date-fns";
 
 export class GoogleTaskService {
   taskService: tasks_v1.Tasks;
@@ -24,13 +25,12 @@ export class GoogleTaskService {
 
     if (this.dataConfig.plannedTasks.enable) {
       return this.getPlannedTasks();
-    }
-    else {
-      return this.getListTasks(this.dataConfig.listID);
+    } else {
+      return this.getTaskData(this.dataConfig.listID);
     }
   }
 
-  async getListTasks(listId: string): Promise<Display.TaskData | undefined> {
+  async getTaskData(listId: string): Promise<Display.TaskData | undefined> {
     let showHidden: boolean = false;
 
     // API requies completed config settings if showCompleted
@@ -40,17 +40,28 @@ export class GoogleTaskService {
     } else {
       showHidden = true;
     }
+
+    const tasks = await this.getListTasks(listId, this.dataConfig.maxResults, this.dataConfig.showCompleted, showHidden);
+    const taskData = {
+      listId: this.dataConfig.listID,
+      tasks
+    };
+    this.pending = false;
+    return taskData;
+  }
+
+  async getListTasks(listId: string, maxResults: number, showCompleted: boolean, showHidden: boolean, maxDate?: string): Promise<Display.Task[]> {
+    const tasks: Display.Task[] = [];
+
     try {
       const res = await this.taskService.tasks.list({
         tasklist: listId,
-        maxResults: this.dataConfig.maxResults,
-        showCompleted: this.dataConfig.showCompleted,
-        showHidden: showHidden
+        maxResults: maxResults,
+        showCompleted: showCompleted,
+        showHidden: showHidden,
+        dueMax: maxDate
       });
       const listResults: tasks_v1.Schema$Tasks = res.data;
-      //this.logger.info(JSON.stringify(listResults));
-
-      const tasks: Display.Task[] = [];
 
       listResults.items?.forEach((gTask) => {
         tasks.push({
@@ -63,11 +74,6 @@ export class GoogleTaskService {
           due: gTask.due ?? undefined
         });
       });
-      const taskData = {
-        listId: this.dataConfig.listID,
-        tasks
-      };
-      return taskData;
     } catch (e) {
       if ((e as GaxiosError).response) {
         const err = e as Common.GaxiosError;
@@ -75,18 +81,43 @@ export class GoogleTaskService {
       }
       this.logger.error("Error getting tasks");
     }
-    return undefined;
+    return tasks;
+  }
+
+  includeList(listName: string | null | undefined): boolean {
+    if (listName === undefined || listName === null) {
+      return false;
+    }
+    if (this.dataConfig.plannedTasks.includedLists.length === 0) {
+      return true;
+    }
+    return this.dataConfig.plannedTasks.includedLists.some((list) => listName.match(list));
   }
 
   async getPlannedTasks(): Promise<Display.TaskData | undefined> {
-    // TODO: Get All Lists that match the values in `dataConfig.plannedTasks.includedLists`
-    
+    const tasks: Display.Task[] = [];
+    const listsResponse = await this.taskService.tasklists.list({ maxResults: 25 });
 
-    //  For each of those lists, get tasks up to the duration
+    const maxDate = formatRFC3339(add(Date.now(), this.dataConfig.plannedTasks.duration));
+    this.logger.info(`Max date: ${maxDate}`);
 
-    //  return the tasks.
+    for (const list of listsResponse.data.items ?? []) {
+      this.logger.info(`Checking list ${list.title}`);
+      if (this.includeList(list.title) && list.id !== undefined && list.id !== null) {
+        this.logger.info(`Including list ${list.title}`);
+        const listTasks = await this.getListTasks(list.id as string, 100, false, false, maxDate);
+        this.logger.info(`Found ${listTasks.length} tasks`);
+        tasks.push(...listTasks);
+        this.logger.info(`Total tasks = ${tasks.length}`);
+      }
+    }
 
-    return undefined;
+    const taskData = {
+      listId: this.dataConfig.listID,
+      tasks
+    };
+    this.pending = false;
+    return taskData;
   }
 
   checkFetchStatus(response: Response) {

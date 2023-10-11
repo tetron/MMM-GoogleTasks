@@ -7,7 +7,6 @@ import { DataConfig, isDataConfig } from "./types/Config";
 import { GaxiosError } from "googleapis-common";
 import { CredentialsFile } from "./types/Google";
 import { ModuleNotification } from "./types/ModuleNotification";
-import * as Display from "./types/Display";
 import { GoogleTaskService } from "./backend/GoogleTaskService";
 
 const logger = new LogWrapper("MMM-GoogleTasks", Log);
@@ -49,6 +48,9 @@ module.exports = NodeHelper.create({
       const token = fs.readFileSync(this.path + "/token.json", "utf-8");
       this.oAuth2Client.setCredentials(JSON.parse(token));
       this.taskService = new GoogleTaskService(this.config, logger, this.oAuth2Client);
+      if (callback) {
+        callback(this.oAuth2Client);
+      }
     }
   },
 
@@ -59,13 +61,17 @@ module.exports = NodeHelper.create({
     }
     try {
       const payload = await this.taskService.getGoogleTasks();
-      this.sendSocketNotification(ModuleNotification.RESULTS, payload);
+      if (payload) {
+        logger.info(`Sending ${payload.tasks.length} tasks to frontend`);
+        this.sendSocketNotification(ModuleNotification.RESULTS, payload);
+      } else {
+        logger.warn("No payload returned from Google Tasks");
+      }
     } catch (e) {
       if ((e as GaxiosError).response) {
         const err = e as Common.GaxiosError;
         logger.error(err.message);
-      }
-      else {
+      } else {
         logger.error(`Error retrieving Google Tasks: ${e}`);
       }
     }
