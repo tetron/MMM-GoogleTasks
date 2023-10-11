@@ -23,6 +23,8 @@ To install the module, use your terminal to:
 3. Run NPM Install to install and transpile:
    `npm install`
 
+If `npm install` causes a heap error during rollup, try `node --max-old-space-size=8192 node_modules/rollup/dist/bin/rollup -c`.
+
 ## Authentication Setup
 
 Google Tasks API an authenticated OAuth2 client:
