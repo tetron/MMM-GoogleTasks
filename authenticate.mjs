@@ -9,8 +9,30 @@ const TOKEN_PATH = 'token.json';
 // Load client secrets from a local file.
 fs.readFile('credentials.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
-  // Authorize a client with credentials, then call the Google Slides API.
-  authorize(JSON.parse(content), listTaskLists);
+
+  let currentTokens = [];
+  if (fs.existsSync(TOKEN_PATH)) {
+    const token = fs.readFileSync(TOKEN_PATH, "utf-8");
+    
+    currentTokens = JSON.parse(token);
+    currentTokens.forEach(element => {
+      console.log(element.account);
+    });
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  rl.question('Enter Account Code: ', (code) => {
+    rl.close();
+    console.log(`You chose ${code}`);
+    // Authorize a client with credentials, then call the Google Slides API.
+    authorize(JSON.parse(content), currentTokens, code, listTaskLists);
+  });
+
+
 });
 
 /**
@@ -19,17 +41,22 @@ fs.readFile('credentials.json', (err, content) => {
  * @param {Object} credentials The authorization client credentials.
  * @param {function} callback The callback to call with the authorized client.
  */
-function authorize(credentials, callback) {
+function authorize(credentials, currentTokens, account, callback) {
   const {client_secret, client_id, redirect_uris} = credentials.installed;
   const oAuth2Client = new google.auth.OAuth2(
       client_id, client_secret, redirect_uris[0]);
 
-  // Check if we have previously stored a token.
-  fs.readFile(TOKEN_PATH, (err, token) => {
-    if (err) return getNewToken(oAuth2Client, callback);
-    oAuth2Client.setCredentials(JSON.parse(token));
+  const existingToken = currentTokens.find(element => element.account === account);
+
+  if (!existingToken)
+  {
+    getNewToken(oAuth2Client, currentTokens, account, callback);
+  }
+  else
+  {
+    oAuth2Client.setCredentials(existingToken.token);
     callback(oAuth2Client);
-  });
+  }
 }
 
 /**
@@ -38,11 +65,14 @@ function authorize(credentials, callback) {
  * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
  * @param {getEventsCallback} callback The callback for the authorized client.
  */
-function getNewToken(oAuth2Client, callback) {
+function getNewToken(oAuth2Client, currentTokens, account, callback) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
   });
+  const existingToken = currentTokens.find(element => element.account === account);
+
+  console.log(`Setting Refresh token for account ${account}`);
   console.log('Authorize this app by visiting this url:', authUrl);
   const rl = readline.createInterface({
     input: process.stdin,
@@ -53,8 +83,19 @@ function getNewToken(oAuth2Client, callback) {
     oAuth2Client.getToken(code, (err, token) => {
       if (err) return callback(err);
       oAuth2Client.setCredentials(token);
+
+      if (existingToken) {
+        existingToken.token = token;
+      }
+      else {
+        currentTokens.push({
+          account: account,
+          token: token
+        })
+      }
+
       // Store the token to disk for later program executions
-      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
+      fs.writeFile(TOKEN_PATH, JSON.stringify(currentTokens), (err) => {
         if (err) console.error(err);
         console.log('Token stored to', TOKEN_PATH);
       });
