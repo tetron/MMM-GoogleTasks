@@ -13,7 +13,7 @@
 		"lint:js": "eslint --ignore-path .eslintignore --cache --fix --max-warnings 0 --ext .ts --ext .js .",
 		"prepare": "husky install",
 		"postinstall": "npm run build",
-		"build": "rollup -c",
+		"build": "node --max-old-space-size=8192 node_modules/rollup/dist/bin/rollup -c",
 		"dev": "rollup -c --sourcemap=inline",
 		"watch": "npm run dev -- --watch"
 	},
