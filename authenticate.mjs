@@ -37,7 +37,7 @@ fs.readFile(options.credentialFile, (err, content) => {
     rl.close();
     console.log(`You chose ${code}`);
     // Authorize a client with credentials, then call the Google Slides API.
-    authorize(JSON.parse(content), currentTokens, code, listTaskLists);
+    authorize(options.tokenFile, JSON.parse(content), currentTokens, code, listTaskLists);
   });
 
 
@@ -49,7 +49,7 @@ fs.readFile(options.credentialFile, (err, content) => {
  * @param {Object} credentials The authorization client credentials.
  * @param {function} callback The callback to call with the authorized client.
  */
-function authorize(credentials, currentTokens, account, callback) {
+function authorize(tokenPath, credentials, currentTokens, account, callback) {
   const {client_secret, client_id, redirect_uris} = credentials.installed;
   const oAuth2Client = new google.auth.OAuth2(
       client_id, client_secret, redirect_uris[0]);
@@ -58,7 +58,7 @@ function authorize(credentials, currentTokens, account, callback) {
 
   if (!existingToken)
   {
-    getNewToken(oAuth2Client, currentTokens, account, callback);
+    getNewToken(tokenPath, oAuth2Client, currentTokens, account, callback);
   }
   else
   {
@@ -73,7 +73,7 @@ function authorize(credentials, currentTokens, account, callback) {
  * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
  * @param {getEventsCallback} callback The callback for the authorized client.
  */
-function getNewToken(oAuth2Client, currentTokens, account, callback) {
+function getNewToken(tokenPath, oAuth2Client, currentTokens, account, callback) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
@@ -89,7 +89,10 @@ function getNewToken(oAuth2Client, currentTokens, account, callback) {
   rl.question('Enter the code from that page here: ', (code) => {
     rl.close();
     oAuth2Client.getToken(code, (err, token) => {
-      if (err) return callback(err);
+      if (err) {
+        console.log("Error: " + err);
+        return callback(err);
+      }
       oAuth2Client.setCredentials(token);
 
       if (existingToken) {
@@ -103,9 +106,9 @@ function getNewToken(oAuth2Client, currentTokens, account, callback) {
       }
 
       // Store the token to disk for later program executions
-      fs.writeFile(TOKEN_PATH, JSON.stringify(currentTokens), (err) => {
+      fs.writeFile(tokenPath, JSON.stringify(currentTokens), (err) => {
         if (err) console.error(err);
-        console.log('Token stored to', TOKEN_PATH);
+        console.log('Token stored to', tokenPath);
       });
       callback(oAuth2Client);
     });

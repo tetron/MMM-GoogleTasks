@@ -82,7 +82,7 @@ const getItemView = (item: Task, config: AppearanceConfig): HTMLElement => {
   const itemWrapper = document.createElement("li");
   itemWrapper.className = "item";
 
-  const titleWrapper = document.createElement("li");
+  const titleWrapper = document.createElement("span");
 
   titleWrapper.innerText = item.title;
   titleWrapper.className = "title";
