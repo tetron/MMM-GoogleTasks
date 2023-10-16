@@ -12,20 +12,26 @@
     padding-bottom: 0.25em;
 
     .date {
-      padding-left: 1.7em;
-      text-align: right;
+      padding: 0em .5em;
+      margin: 0em .5em;
+      text-align: center;
+      color: white;
+      border-radius: 25px;
     }
 
     .overdue {
-      color: red;
+      background-color: red;
+      color: white;
     }
 
     .soon {
-      color: orange;
+      background-color: orange;
+      color: black;
     }
 
     .upcoming {
-      color: green;
+      background-color: green;
+      color: white;
     }
 
     .notes {
@@ -37,6 +43,10 @@
     .child {
       text-align: left;
       padding-left: 1.5em;
+    }
+
+    .title {
+      float: inline-end;
     }
   }
 
