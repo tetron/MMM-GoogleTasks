@@ -2,7 +2,7 @@ import { AccountConfig, DataConfig } from "../types/Config";
 import { AccountToken, Token } from "../types/Authentication";
 import { LogWrapper } from "../utilities/LogWrapper";
 import * as Display from "../types/Display";
-import { google, tasks_v1, Common } from "googleapis";
+import { google, tasks_v1 } from "googleapis";
 import { GaxiosError } from "googleapis-common";
 import { add, formatRFC3339 } from "date-fns";
 import { CredentialsFile } from "../types/Google";
@@ -63,7 +63,7 @@ export class GoogleTaskService {
       });
     } catch (e) {
       if ((e as GaxiosError).response) {
-        const err = e as Common.GaxiosError;
+        const err = e as GaxiosError;
         this.logger.error(err.message);
       }
       this.logger.error("Error getting tasks");
@@ -86,7 +86,7 @@ export class GoogleTaskService {
     const authClient = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
     authClient.setCredentials(token);
 
-    this.taskService = google.tasks({ version: "v1", auth: authClient });
+    this.taskService = new tasks_v1.Tasks({ auth: authClient });
   }
 
   async getTasksForAllAccounts(planned: boolean): Promise<Display.TaskData | undefined> {
