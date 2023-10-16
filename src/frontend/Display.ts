@@ -2,16 +2,6 @@ import { format, formatDistanceToNowStrict, parseJSON, addDays, isBefore, isAfte
 import { AppearanceConfig } from "../types/Config";
 import { TaskData, Task } from "../types/Display";
 
-export const getLoadingView = (config: AppearanceConfig): HTMLElement => {
-  const wrapper = document.createElement("div");
-  wrapper.className = "wrapper";
-  wrapper.style.maxWidth = config.maxWidth ?? "auto";
-
-  wrapper.innerHTML = "Loading Google Tasks";
-  wrapper.classList.add("bright", "light", "small");
-  return wrapper;
-};
-
 const performCustomSort = (originalTasks: Task[]): Task[] => {
   const temp: Task[] = [];
   originalTasks
@@ -53,55 +43,52 @@ const getOrderedTasks = (originalTasks: Task[], config: AppearanceConfig): Task[
   return originalTasks;
 };
 
-const getDateSpan = (item: Task, config: AppearanceConfig, plannedView: boolean): HTMLElement | undefined => {
-    
-    if (!item.due) {
-      return undefined;
-    }
-  
-    const dateWrapper = document.createElement("span");
-    const classNames = ["date", "light"];
-    const dueDate = addDays(parseJSON(item.due), 1);
-    const now = new Date();
-    const next24 = addDays(now, 1);
+const getDateSpan = (item: Task, config: AppearanceConfig): HTMLElement | undefined => {
+  if (!item.due) {
+    return undefined;
+  }
 
-    // overdue
-    if (isBefore(dueDate, now)) {
-      classNames.push("overdue");
-    }
+  const dateWrapper = document.createElement("span");
+  const classNames = ["date", "light"];
+  const dueDate = addDays(parseJSON(item.due), 1);
+  const now = new Date();
+  const next24 = addDays(now, 1);
 
-    // due in the next day
-    if (isBefore(dueDate, next24) && isAfter(dueDate, now)) {
-      classNames.push("soon");
-    }
+  // overdue
+  if (isBefore(dueDate, now)) {
+    classNames.push("overdue");
+  }
 
-    if (isAfter(dueDate, next24)) {
-      classNames.push("upcoming");
-    }
+  // due in the next day
+  if (isBefore(dueDate, next24) && isAfter(dueDate, now)) {
+    classNames.push("soon");
+  }
 
-    if (plannedView) {
-      dateWrapper.innerHTML = formatDistanceToNowStrict(dueDate, { addSuffix: true });
-    } else {
-      dateWrapper.innerHTML = format(dueDate, config.dateFormat);
-    }
+  if (isAfter(dueDate, next24)) {
+    classNames.push("upcoming");
+  }
 
-    dateWrapper.className = classNames.join(" ");
-    return dateWrapper;
-}
+  if (config.useRelativeDate) {
+    dateWrapper.innerHTML = formatDistanceToNowStrict(dueDate, { addSuffix: true });
+  } else {
+    dateWrapper.innerHTML = format(dueDate, config.dateFormat);
+  }
 
+  dateWrapper.className = classNames.join(" ");
+  return dateWrapper;
+};
 
-const getItemView = (item: Task, config: AppearanceConfig, plannedView: boolean): HTMLElement => {
+const getItemView = (item: Task, config: AppearanceConfig): HTMLElement => {
   const itemWrapper = document.createElement("li");
   itemWrapper.className = "item";
-  
+
   const titleWrapper = document.createElement("li");
 
   titleWrapper.innerText = item.title;
-  titleWrapper.className = "title"
+  titleWrapper.className = "title";
   titleWrapper.innerText = item.title;
 
-
-  const dateWrapper = getDateSpan(item, config, plannedView);
+  const dateWrapper = getDateSpan(item, config);
 
   if (dateWrapper) {
     itemWrapper.appendChild(dateWrapper);
@@ -111,17 +98,27 @@ const getItemView = (item: Task, config: AppearanceConfig, plannedView: boolean)
   return itemWrapper;
 };
 
-export const getTaskView = (taskData: TaskData, config: AppearanceConfig, plannedView: boolean): HTMLElement => {
+export const getTaskView = (taskData: TaskData, config: AppearanceConfig): HTMLElement => {
   const wrapper = document.createElement("ul");
   wrapper.style.maxWidth = config.maxWidth ?? "auto";
 
   const tasks: Task[] = getOrderedTasks(taskData.tasks, config);
 
   tasks.forEach((item) => {
-    const itemWrapper = getItemView(item, config, plannedView);
+    const itemWrapper = getItemView(item, config);
 
     wrapper.appendChild(itemWrapper);
   });
 
+  return wrapper;
+};
+
+export const getLoadingView = (config: AppearanceConfig): HTMLElement => {
+  const wrapper = document.createElement("div");
+  wrapper.className = "wrapper";
+  wrapper.style.maxWidth = config.maxWidth ?? "auto";
+
+  wrapper.innerHTML = "Loading Google Tasks";
+  wrapper.classList.add("bright", "light", "small");
   return wrapper;
 };

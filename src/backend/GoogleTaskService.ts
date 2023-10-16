@@ -2,25 +2,24 @@ import { AccountConfig, DataConfig } from "../types/Config";
 import { AccountToken, Token } from "../types/Authentication";
 import { LogWrapper } from "../utilities/LogWrapper";
 import * as Display from "../types/Display";
-import { Auth, google, tasks_v1, Common } from "googleapis";
+import { google, tasks_v1, Common } from "googleapis";
 import { GaxiosError } from "googleapis-common";
 import { add, formatRFC3339 } from "date-fns";
-import { tasks } from "googleapis/build/src/apis/tasks";
+import { CredentialsFile } from "../types/Google";
 
 export class GoogleTaskService {
-  taskService: tasks_v1.Tasks;
-  oAuthClient: Auth.GoogleAuth;
+  taskService?: tasks_v1.Tasks;
   pending: boolean = false;
   dataConfig: DataConfig;
   logger: LogWrapper;
   accountTokens: AccountToken[];
+  credentials: CredentialsFile;
 
-  constructor(config: DataConfig, logger: LogWrapper, oAuth2Client: Auth.GoogleAuth, accountTokens: AccountToken[]) {
+  constructor(config: DataConfig, logger: LogWrapper, credentials: CredentialsFile, accountTokens: AccountToken[]) {
     this.dataConfig = config;
     this.logger = logger;
     this.accountTokens = accountTokens;
-    this.oAuthClient = oAuth2Client;
-    this.taskService = google.tasks({ version: "v1", auth: oAuth2Client });
+    this.credentials = credentials;
   }
 
   async getGoogleTasks(): Promise<Display.TaskData | undefined> {
@@ -33,6 +32,11 @@ export class GoogleTaskService {
   }
 
   async getListTasks(accountConfig: AccountConfig, listId: string, maxResults: number, showCompleted: boolean, showHidden: boolean, maxDate?: string): Promise<Display.Task[]> {
+    if (!this.taskService) {
+      this.logger.error("Task Service not initialized");
+      return [];
+    }
+
     const tasks: Display.Task[] = [];
 
     try {
@@ -77,18 +81,20 @@ export class GoogleTaskService {
     return accountConfig.includedLists.some((list) => listName.match(list));
   }
 
-  setAccountCredentials(token: Token): void {
-    // @ts-ignore
-    this.oAuthClient.setCredentials(token);
-    this.taskService = google.tasks({ version: "v1", auth: this.oAuthClient });
+  setTaskServiceWithCredentials(token: Token): void {
+    const { client_secret, client_id, redirect_uris } = this.credentials.installed;
+    const authClient = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+    authClient.setCredentials(token);
+
+    this.taskService = google.tasks({ version: "v1", auth: authClient });
   }
 
   async getTasksForAllAccounts(planned: boolean): Promise<Display.TaskData | undefined> {
-    let tasks: Display.Task[] = [];
+    const tasks: Display.Task[] = [];
     for (const configAccount of this.dataConfig.accounts) {
       const accountToken = this.accountTokens.find((element) => element.account === configAccount.name);
       if (accountToken) {
-        this.setAccountCredentials(accountToken.token);
+        this.setTaskServiceWithCredentials(accountToken.token);
         const accountTasks = await this.getAccountTasks(configAccount, planned);
         if (accountTasks) {
           tasks.push(...accountTasks);
@@ -106,6 +112,11 @@ export class GoogleTaskService {
   }
 
   async getAccountTasks(accountConfig: AccountConfig, planned: boolean): Promise<Display.Task[] | undefined> {
+    if (!this.taskService) {
+      this.logger.error("Task Service not initialized");
+      return undefined;
+    }
+
     const tasks: Display.Task[] = [];
     const listsResponse = await this.taskService.tasklists.list({ maxResults: 25 });
 

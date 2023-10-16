@@ -35,7 +35,7 @@ Google Tasks API an authenticated OAuth2 client:
 4. Run authenticate.mjs, specifying the location of your credential and token file:
    `node authenticate.mjs -c /path/to/credentials.json -t /path/to/token.json`
 5. Follow the instructions to generate tokens. The account name value used when storing tokens in the token.json file. This name is referenced in the `accounts` section of the [configuration](#configuration-options).
-6. Repeat steps 4 and 5 for each account you want to authenticate.  Note that every account you want to add must be added to the [Test users](https://console.cloud.google.com/apis/credentials/consent) section for your application.
+6. Repeat steps 4 and 5 for each account you want to authenticate. Note that every account you want to add must be added to the [Test users](https://console.cloud.google.com/apis/credentials/consent) section for your application.
 
 ## Configuration
 
@@ -82,7 +82,6 @@ var config = {
 | `animationSpeed`   | No       | Speed of the update animation. (Milliseconds)                                            | `2000` (2 seconds)       |
 | `initialLoadDelay` | No       | Delay before first load (Milliseconds)                                                   | `1500` (1.5 seconds)     |
 | `ordering`         | No       | The method to order results. `myorder`, `due`, `title`, `updated`                        | `myorder`                |
-
 
 ### Accounts Configuration
 

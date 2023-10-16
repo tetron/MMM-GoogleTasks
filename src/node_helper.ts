@@ -2,7 +2,6 @@ import { LogWrapper } from "./utilities/LogWrapper";
 import * as Log from "logger";
 import * as NodeHelper from "node_helper";
 import * as fs from "fs";
-import { Auth, google, tasks_v1, Common } from "googleapis";
 import { AccountToken } from "./types/Authentication";
 import { DataConfig, isDataConfig } from "./types/Config";
 import { GaxiosError } from "googleapis-common";
@@ -13,8 +12,6 @@ import { GoogleTaskService } from "./backend/GoogleTaskService";
 const logger = new LogWrapper("MMM-GoogleTasks", Log);
 
 module.exports = NodeHelper.create({
-  taskService: {} as tasks_v1.Tasks,
-  oAuth2Client: {} as Auth.GoogleAuth,
   config: {} as DataConfig,
   start: function () {
     logger.log("Starting node helper for: " + this.name);
@@ -24,35 +21,34 @@ module.exports = NodeHelper.create({
     if (notification === ModuleNotification.CONFIG) {
       if (isDataConfig(payload)) {
         this.config = payload as DataConfig;
-        this.authenticate();
+        this.setupTaskService();
       } else {
         logger.error("Invalid configuration payload");
       }
     } else if (notification === ModuleNotification.RETRIEVE) {
-      this.getList(payload);
-    }
-  },
-
-  authenticate: function () {
-    if (fs.existsSync(this.config.credentialPath)) {
-      const content = fs.readFileSync(this.config.credentialPath, "utf-8");
-      this.authorize(JSON.parse(content), this.startTasksService);
-    } else {
-      logger.error("No credentials file found.");
-    }
-  },
-  authorize: function (credentials: CredentialsFile, callback: (auth: Auth.GoogleAuth) => void) {
-    const { client_secret, client_id, redirect_uris } = credentials.installed;
-    this.oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-
-    if (fs.existsSync(this.config.tokenPath)) {
-      const tokenFile = fs.readFileSync(this.config.tokenPath, "utf-8");
-      const accounts = JSON.parse(tokenFile) as AccountToken[];
-      this.taskService = new GoogleTaskService(this.config, logger, this.oAuth2Client, accounts);
-      if (callback) {
-        callback(this.oAuth2Client);
+      if (!this.taskService) {
+        logger.error("Task Service not configured.");
+      } else {
+        this.getList(payload);
       }
     }
+  },
+
+  setupTaskService: function () {
+    if (!fs.existsSync(this.config.credentialPath)) {
+      logger.error("No credentials file found.");
+    }
+    if (!fs.existsSync(this.config.tokenPath)) {
+      logger.error("No token file found");
+    }
+
+    const credentialContent = fs.readFileSync(this.config.credentialPath, "utf-8");
+    const tokenContent = fs.readFileSync(this.config.tokenPath, "utf-8");
+
+    const credentialConfig = JSON.parse(credentialContent) as CredentialsFile;
+    const accounts = JSON.parse(tokenContent) as AccountToken[];
+
+    this.taskService = new GoogleTaskService(this.config, logger, credentialConfig, accounts);
   },
 
   getList: async function () {
@@ -70,7 +66,7 @@ module.exports = NodeHelper.create({
       }
     } catch (e) {
       if ((e as GaxiosError).response) {
-        const err = e as Common.GaxiosError;
+        const err = e as GaxiosError;
         logger.error(err.message);
       } else {
         logger.error(`Error retrieving Google Tasks: ${e}`);

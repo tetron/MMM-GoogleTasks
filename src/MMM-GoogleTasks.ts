@@ -19,6 +19,7 @@ Module.register<Config>("MMM-GoogleTasks", {
     updateInterval: 60000, // Time between content updates (millisconds)
     animationSpeed: 2000, // Speed of the update animation (milliseconds)
     initialLoadDelay: 1500,
+    useRelativeDate: false,
     maxWidth: "450px",
     accounts: [],
     plannedTasks: {
@@ -106,6 +107,6 @@ Module.register<Config>("MMM-GoogleTasks", {
     if (!this.isLoaded) {
       return getLoadingView(this.config);
     }
-    return getTaskView(this.taskData, this.config, this.config.plannedTasks.enable);
+    return getTaskView(this.taskData, this.config);
   }
 });
