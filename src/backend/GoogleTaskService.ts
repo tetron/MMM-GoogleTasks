@@ -78,7 +78,7 @@ export class GoogleTaskService {
     if (accountConfig.includedLists.length === 0) {
       return true;
     }
-    return accountConfig.includedLists.some((list) => listName.match(list));
+    return accountConfig.includedLists.some((list) => list.match(listName));
   }
 
   setTaskServiceWithCredentials(token: Token): void {
@@ -127,7 +127,7 @@ export class GoogleTaskService {
       this.logger.info(`Checking list ${list.title}`);
       if (this.includeList(list.title, accountConfig) && list.id !== undefined && list.id !== null) {
         this.logger.info(`Including list ${list.title}`);
-        const listTasks = await this.getListTasks(accountConfig, list.id as string, planned ? 100 : this.dataConfig.maxResults, planned ? this.dataConfig.showCompleted : false, false, planned ? maxDate : undefined);
+        const listTasks = await this.getListTasks(accountConfig, list.id, planned ? 100 : this.dataConfig.maxResults, planned ? this.dataConfig.showCompleted : false, false, planned ? maxDate : undefined);
         this.logger.info(`Found ${listTasks.length} tasks`);
         tasks.push(...listTasks);
         this.logger.info(`Total tasks = ${tasks.length}`);

@@ -13,7 +13,7 @@ const performCustomSort = (originalTasks: Task[]): Task[] => {
 
       // Loop through all tasks to find and sort subtasks for each parent
       const subList: Task[] = [];
-      originalTasks.map((subtask) => {
+      originalTasks.forEach((subtask) => {
         if (subtask.parent === task.id) {
           subList.push(subtask);
         }
