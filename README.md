@@ -30,11 +30,12 @@ If `npm install` causes a heap error during rollup, try `node --max-old-space-si
 Google Tasks API an authenticated OAuth2 client:
 
 1. Go [here](https://developers.google.com/tasks/quickstart/nodejs), and click "Enable the Google Tasks API" button. Follow the steps to download the credentials.json file.
-2. Move credentials.json to your MMM-GoogleTasks directory (MagicMirror/modules/MMM-GoogleTasks/)
+2. Place the `credentials.json` file in a local directory. It can live alongside your MagicMirror configuration file (`config.js`).
 3. [Enable Google Tasks API](https://console.cloud.google.com/apis/library/tasks.googleapis.com). Select the same project as in step 1.
-4. Run authenticate.js:
-   `node authenticate.mjs`
-5. Follow the instructions and it should print your lists. Copy the ID of the list you want to the config listID
+4. Run authenticate.mjs, specifying the location of your credential and token file:
+   `node authenticate.mjs -c /path/to/credentials.json -t /path/to/token.json`
+5. Follow the instructions to generate tokens. The account name value used when storing tokens in the token.json file. This name is referenced in the `accounts` section of the [configuration](#configuration-options).
+6. Repeat steps 4 and 5 for each account you want to authenticate.  Note that every account you want to add must be added to the [Test users](https://console.cloud.google.com/apis/credentials/consent) section for your application.
 
 ## Configuration
 
@@ -51,7 +52,11 @@ var config = {
             header: "Google Tasks",
             position: "top_left",
             config: {
-                listID: "",
+                credentialPath: "/path/to/credentials.json",
+                tokenPath: "/path/to/token.json",
+                accounts: [
+
+                ]
                 ...
                 // See below for Configuration Options
             }
@@ -65,7 +70,10 @@ var config = {
 
 | Option             | Required | Details                                                                                  | Default                  |
 | ------------------ | -------- | ---------------------------------------------------------------------------------------- | ------------------------ |
-| `listID`           | Yes      | List ID printed from authenticate.mjs (see installation)                                 |                          |
+| `credentialPath`   | Yes      | Path to the `credentials.json` file                                                      |                          |
+| `tokenPath`        | Yes      | Path to the `token.json` file                                                            |                          |
+| `accounts`         | Yes      | See [Accounts Configuration](#accounts-configuration)                                    |                          |
+| `plannedTasks`     | Yes      | See [Planned Task Configuration](#planned-tasks-configuration)                           | `{ enabled: false }`     |
 | `maxResults`       | No       | Max number of list items to retrieve.                                                    | 10                       |
 | `showCompleted`    | No       | Show completed task items                                                                | `false`                  |
 | `maxWidth`         | No       | Width of the table                                                                       | `450px`                  |
@@ -74,7 +82,44 @@ var config = {
 | `animationSpeed`   | No       | Speed of the update animation. (Milliseconds)                                            | `2000` (2 seconds)       |
 | `initialLoadDelay` | No       | Delay before first load (Milliseconds)                                                   | `1500` (1.5 seconds)     |
 | `ordering`         | No       | The method to order results. `myorder`, `due`, `title`, `updated`                        | `myorder`                |
-| `plannedTasks`     | Yes      | See [Planned Task Configuration](#planned-tasks-configuration)                           | `{ enabled: false }`     |
+
+
+### Accounts Configuration
+
+The `accounts` section allows you to configure different accounts from which to pull Google tasks. Each account object can have the following properties:
+
+| Option          | Required | Details                                                                                                  | Default |
+| --------------- | -------- | -------------------------------------------------------------------------------------------------------- | ------- |
+| `name`          | Yes      | The name of the account. There should be a token in your token.json file with the same name.             |         |
+| `includedLists` | Yes      | A list of strings or Regex expressions used to determine whether the Google task list should be included |         |
+
+#### Acounts Configuration Example
+
+```js
+{
+    module: "MMM-GoogleTasks",
+    header: "Google Tasks",
+    position: "top_right",
+    config: {
+        credentialPath: "/path/to/credentials.json",
+        tokenPath: "/path/to/token.json",
+        ordering: "due",
+        accounts: [
+            {
+                name: "work",
+                includedLists: ["Inbox"]
+            },
+            {
+                name: "personal",
+                includedLists: ["Reminders"]
+            }
+        ],
+        plannedTasks: {
+            enable: false
+        }
+    }
+}
+```
 
 ### Planned Tasks Configuration
 
@@ -96,7 +141,8 @@ In other words, if you just enable the Planned Tasks configuration, the default 
     header: "Google Tasks",
     position: "top_right",
     config: {
-        listID: "MTc0NDU5MjE5OTkwMzc4MTE4NjU6NDcyMjk5MTIwOjA",
+        credentialPath: "/path/to/credentials.json",
+        tokenPath: "/path/to/token.json",
         ordering: "due",
         plannedTasks: {
             enable: true,

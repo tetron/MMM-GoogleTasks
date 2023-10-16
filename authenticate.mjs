@@ -1,18 +1,26 @@
+import { program } from 'commander';
+
 import { google } from 'googleapis';
 import readline from 'readline';
 import fs from 'fs';
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/tasks.readonly'];
-const TOKEN_PATH = 'token.json';
+
+program
+  .option('-c, --credential-file <credentialFile>', 'path to credential file', './credentials.json')
+  .option('-t, --token-file <tokenFile>', 'path to token file', './token.json')
+
+program.parse(process.argv);
+const options = program.opts();
 
 // Load client secrets from a local file.
-fs.readFile('credentials.json', (err, content) => {
+fs.readFile(options.credentialFile, (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
 
   let currentTokens = [];
-  if (fs.existsSync(TOKEN_PATH)) {
-    const token = fs.readFileSync(TOKEN_PATH, "utf-8");
+  if (fs.existsSync(options.tokenFile)) {
+    const token = fs.readFileSync(options.tokenFile, "utf-8");
     
     currentTokens = JSON.parse(token);
     currentTokens.forEach(element => {
