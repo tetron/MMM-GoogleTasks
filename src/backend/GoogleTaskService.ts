@@ -1,19 +1,25 @@
-import { DataConfig } from "../types/Config";
+import { AccountConfig, DataConfig } from "../types/Config";
+import { AccountToken, Token } from "../types/Authentication";
 import { LogWrapper } from "../utilities/LogWrapper";
 import * as Display from "../types/Display";
 import { Auth, google, tasks_v1, Common } from "googleapis";
 import { GaxiosError } from "googleapis-common";
 import { add, formatRFC3339 } from "date-fns";
+import { tasks } from "googleapis/build/src/apis/tasks";
 
 export class GoogleTaskService {
   taskService: tasks_v1.Tasks;
+  oAuthClient: Auth.GoogleAuth;
   pending: boolean = false;
   dataConfig: DataConfig;
   logger: LogWrapper;
+  accountTokens: AccountToken[];
 
-  constructor(config: DataConfig, logger: LogWrapper, oAuth2Client: Auth.GoogleAuth) {
+  constructor(config: DataConfig, logger: LogWrapper, oAuth2Client: Auth.GoogleAuth, accountTokens: AccountToken[]) {
     this.dataConfig = config;
     this.logger = logger;
+    this.accountTokens = accountTokens;
+    this.oAuthClient = oAuth2Client;
     this.taskService = google.tasks({ version: "v1", auth: oAuth2Client });
   }
 
@@ -23,34 +29,10 @@ export class GoogleTaskService {
     }
     this.pending = true;
 
-    if (this.dataConfig.plannedTasks.enable) {
-      return this.getPlannedTasks();
-    } else {
-      return this.getTaskData(this.dataConfig.listID);
-    }
+    return this.getTasksForAllAccounts(this.dataConfig.plannedTasks.enable);
   }
 
-  async getTaskData(listId: string): Promise<Display.TaskData | undefined> {
-    let showHidden: boolean = false;
-
-    // API requies completed config settings if showCompleted
-    if (!this.dataConfig.showCompleted) {
-      // delete this.config.completedMin;
-      // delete this.config.completedMax;
-    } else {
-      showHidden = true;
-    }
-
-    const tasks = await this.getListTasks(listId, this.dataConfig.maxResults, this.dataConfig.showCompleted, showHidden);
-    const taskData = {
-      listId: this.dataConfig.listID,
-      tasks
-    };
-    this.pending = false;
-    return taskData;
-  }
-
-  async getListTasks(listId: string, maxResults: number, showCompleted: boolean, showHidden: boolean, maxDate?: string): Promise<Display.Task[]> {
+  async getListTasks(accountConfig: AccountConfig, listId: string, maxResults: number, showCompleted: boolean, showHidden: boolean, maxDate?: string): Promise<Display.Task[]> {
     const tasks: Display.Task[] = [];
 
     try {
@@ -66,6 +48,7 @@ export class GoogleTaskService {
       listResults.items?.forEach((gTask) => {
         tasks.push({
           id: gTask.id ?? "",
+          account: accountConfig.name,
           title: gTask.title ?? "No Title",
           parent: gTask.parent ?? undefined,
           position: gTask.position ? parseInt(gTask.position) : -1,
@@ -84,17 +67,45 @@ export class GoogleTaskService {
     return tasks;
   }
 
-  includeList(listName: string | null | undefined): boolean {
+  includeList(listName: string | null | undefined, accountConfig: AccountConfig): boolean {
     if (listName === undefined || listName === null) {
       return false;
     }
-    if (this.dataConfig.plannedTasks.includedLists.length === 0) {
+    if (accountConfig.includedLists.length === 0) {
       return true;
     }
-    return this.dataConfig.plannedTasks.includedLists.some((list) => listName.match(list));
+    return accountConfig.includedLists.some((list) => listName.match(list));
   }
 
-  async getPlannedTasks(): Promise<Display.TaskData | undefined> {
+  setAccountCredentials(token: Token): void {
+    // @ts-ignore
+    this.oAuthClient.setCredentials(token);
+    this.taskService = google.tasks({ version: "v1", auth: this.oAuthClient });
+  }
+
+  async getTasksForAllAccounts(planned: boolean): Promise<Display.TaskData | undefined> {
+    let tasks: Display.Task[] = [];
+    for (const configAccount of this.dataConfig.accounts) {
+      const accountToken = this.accountTokens.find((element) => element.account === configAccount.name);
+      if (accountToken) {
+        this.setAccountCredentials(accountToken.token);
+        const accountTasks = await this.getAccountTasks(configAccount, planned);
+        if (accountTasks) {
+          tasks.push(...accountTasks);
+        }
+      } else {
+        this.logger.error(`No token found for account ${configAccount.name}`);
+      }
+    }
+
+    const taskData = {
+      tasks
+    };
+    this.pending = false;
+    return taskData;
+  }
+
+  async getAccountTasks(accountConfig: AccountConfig, planned: boolean): Promise<Display.Task[] | undefined> {
     const tasks: Display.Task[] = [];
     const listsResponse = await this.taskService.tasklists.list({ maxResults: 25 });
 
@@ -103,21 +114,16 @@ export class GoogleTaskService {
 
     for (const list of listsResponse.data.items ?? []) {
       this.logger.info(`Checking list ${list.title}`);
-      if (this.includeList(list.title) && list.id !== undefined && list.id !== null) {
+      if (this.includeList(list.title, accountConfig) && list.id !== undefined && list.id !== null) {
         this.logger.info(`Including list ${list.title}`);
-        const listTasks = await this.getListTasks(list.id as string, 100, false, false, maxDate);
+        const listTasks = await this.getListTasks(accountConfig, list.id as string, planned ? 100 : this.dataConfig.maxResults, planned ? this.dataConfig.showCompleted : false, false, planned ? maxDate : undefined);
         this.logger.info(`Found ${listTasks.length} tasks`);
         tasks.push(...listTasks);
         this.logger.info(`Total tasks = ${tasks.length}`);
       }
     }
 
-    const taskData = {
-      listId: this.dataConfig.listID,
-      tasks
-    };
-    this.pending = false;
-    return taskData;
+    return tasks;
   }
 
   checkFetchStatus(response: Response) {

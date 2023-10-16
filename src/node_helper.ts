@@ -3,6 +3,7 @@ import * as Log from "logger";
 import * as NodeHelper from "node_helper";
 import * as fs from "fs";
 import { Auth, google, tasks_v1, Common } from "googleapis";
+import { AccountToken } from "./types/Authentication";
 import { DataConfig, isDataConfig } from "./types/Config";
 import { GaxiosError } from "googleapis-common";
 import { CredentialsFile } from "./types/Google";
@@ -33,8 +34,8 @@ module.exports = NodeHelper.create({
   },
 
   authenticate: function () {
-    if (fs.existsSync(this.path + "/credentials.json")) {
-      const content = fs.readFileSync(this.path + "/credentials.json", "utf-8");
+    if (fs.existsSync(this.config.credentialPath)) {
+      const content = fs.readFileSync(this.config.credentialPath, "utf-8");
       this.authorize(JSON.parse(content), this.startTasksService);
     } else {
       logger.error("No credentials file found.");
@@ -44,10 +45,10 @@ module.exports = NodeHelper.create({
     const { client_secret, client_id, redirect_uris } = credentials.installed;
     this.oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
-    if (fs.existsSync(this.path + "/token.json")) {
-      const token = fs.readFileSync(this.path + "/token.json", "utf-8");
-      this.oAuth2Client.setCredentials(JSON.parse(token));
-      this.taskService = new GoogleTaskService(this.config, logger, this.oAuth2Client);
+    if (fs.existsSync(this.config.tokenPath)) {
+      const tokenFile = fs.readFileSync(this.config.tokenPath, "utf-8");
+      const accounts = JSON.parse(tokenFile) as AccountToken[];
+      this.taskService = new GoogleTaskService(this.config, logger, this.oAuth2Client, accounts);
       if (callback) {
         callback(this.oAuth2Client);
       }

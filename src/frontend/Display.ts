@@ -2,53 +2,6 @@ import { format, formatDistanceToNowStrict, parseJSON, addDays, isBefore, isAfte
 import { AppearanceConfig } from "../types/Config";
 import { TaskData, Task } from "../types/Display";
 
-// export const getAlertCard = (alert: Alert): HTMLElement => {
-//   const card = document.createElement("div");
-//   card.classList.add("prom-alert-wrapper");
-
-//   const dateWrapper = document.createElement("div");
-//   dateWrapper.classList.add("status-wrapper");
-//   card.appendChild(dateWrapper);
-
-//   const dataWrapper = document.createElement("div");
-//   dataWrapper.classList.add("data-wrapper");
-//   card.appendChild(dataWrapper);
-
-//   // Icon
-//   dateWrapper.appendChild(getAlertStatusIcon(alert.state));
-
-//   const title = document.createElement("div");
-//   title.classList.add("small", "bright", "no-wrap", "title");
-//   title.innerHTML = alert.annotations.summary;
-//   dataWrapper.appendChild(title);
-
-//   const startDiv = document.createElement("div");
-//   startDiv.classList.add("xsmall", "no-wrap", "dimmed");
-//   startDiv.innerText = alert.annotations.description;
-//   dataWrapper.appendChild(startDiv);
-
-//   return card;
-// };
-
-// export const getAlertStatusIcon = (state: AlertState): HTMLElement => {
-//   const icon = document.createElement("i");
-//   let iconName = "";
-//   switch (state) {
-//     case AlertState.PENDING:
-//       iconName = "exclamation-triangle";
-//       break;
-//     case AlertState.FIRING:
-//       iconName = "exclamation-circle";
-//       break;
-//     case AlertState.RESOLVED:
-//       iconName = "check";
-//       break;
-//   }
-
-//   icon.classList.add("fa", "fa-fw", `fa-${iconName}`, `state-${state}`);
-//   return icon;
-// };
-
 export const getLoadingView = (config: AppearanceConfig): HTMLElement => {
   const wrapper = document.createElement("div");
   wrapper.className = "wrapper";
@@ -100,10 +53,12 @@ const getOrderedTasks = (originalTasks: Task[], config: AppearanceConfig): Task[
   return originalTasks;
 };
 
-const getItemView = (item: Task, config: AppearanceConfig, plannedView: boolean): HTMLElement => {
-  const itemWrapper = document.createElement("li");
-  itemWrapper.className = "item";
-  if (item.due) {
+const getDateSpan = (item: Task, config: AppearanceConfig, plannedView: boolean): HTMLElement | undefined => {
+    
+    if (!item.due) {
+      return undefined;
+    }
+  
     const dateWrapper = document.createElement("span");
     const classNames = ["date", "light"];
     const dueDate = addDays(parseJSON(item.due), 1);
@@ -124,7 +79,6 @@ const getItemView = (item: Task, config: AppearanceConfig, plannedView: boolean)
       classNames.push("upcoming");
     }
 
-    console.log(`Due Date: ${dueDate}`);
     if (plannedView) {
       dateWrapper.innerHTML = formatDistanceToNowStrict(dueDate, { addSuffix: true });
     } else {
@@ -132,11 +86,28 @@ const getItemView = (item: Task, config: AppearanceConfig, plannedView: boolean)
     }
 
     dateWrapper.className = classNames.join(" ");
+    return dateWrapper;
+}
+
+
+const getItemView = (item: Task, config: AppearanceConfig, plannedView: boolean): HTMLElement => {
+  const itemWrapper = document.createElement("li");
+  itemWrapper.className = "item";
+  
+  const titleWrapper = document.createElement("li");
+
+  titleWrapper.innerText = item.title;
+  titleWrapper.className = "title"
+  titleWrapper.innerText = item.title;
+
+
+  const dateWrapper = getDateSpan(item, config, plannedView);
+
+  if (dateWrapper) {
     itemWrapper.appendChild(dateWrapper);
-    itemWrapper.innerHTML += " - ";
   }
 
-  itemWrapper.innerHTML += item.title;
+  itemWrapper.appendChild(titleWrapper);
   return itemWrapper;
 };
 

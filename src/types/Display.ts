@@ -1,10 +1,10 @@
 export type TaskData = {
-  listId: string;
   tasks: Task[];
 };
 
 export type Task = {
   id: string;
+  account: string;
   title: string;
   parent?: string;
   position: number;

@@ -10,7 +10,8 @@ import { ModuleNotification } from "./types/ModuleNotification";
 Module.register<Config>("MMM-GoogleTasks", {
   // Default module config.
   defaults: {
-    listID: "", // List ID (see authenticate.js)
+    credentialPath: "credentials.json",
+    tokenPath: "token.json",
     maxResults: 10,
     showCompleted: false, //set showCompleted and showHidden true
     ordering: "myorder", // Order by due date, title, updated timestamp or by 'my order'
@@ -19,9 +20,9 @@ Module.register<Config>("MMM-GoogleTasks", {
     animationSpeed: 2000, // Speed of the update animation (milliseconds)
     initialLoadDelay: 1500,
     maxWidth: "450px",
+    accounts: [],
     plannedTasks: {
       enable: false,
-      includedLists: [".*"],
       duration: {
         weeks: 2
       }
