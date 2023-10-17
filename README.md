@@ -1,5 +1,9 @@
 # MMM-GoogleTasks
 
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/spyder007/MMM-GoogleTasks/node.yml)
+![Sonar Coverage](https://img.shields.io/sonar/coverage/spyder007_MMM-GoogleTasks/main?server=https%3A%2F%2Fsonarcloud.io)
+![Sonar Violations (long format)](https://img.shields.io/sonar/violations/spyder007_MMM-GoogleTasks/main?server=https%3A%2F%2Fsonarcloud.io&label=sonar%20violations)
+
 Module for the [MagicMirror²](https://github.com/MichMich/MagicMirror/) smart mirror.
 
 Displays tasks from Google Tasks App
