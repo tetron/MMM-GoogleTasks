@@ -78,7 +78,7 @@ export class GoogleTaskService {
     if (accountConfig.includedLists.length === 0) {
       return true;
     }
-    return accountConfig.includedLists.some((list) => list.match(listName));
+    return accountConfig.includedLists.some((list) => listName.match(list));
   }
 
   setTaskServiceWithCredentials(token: Token): void {
