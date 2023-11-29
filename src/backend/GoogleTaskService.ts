@@ -78,7 +78,9 @@ export class GoogleTaskService {
     if (accountConfig.includedLists.length === 0) {
       return true;
     }
-    return accountConfig.includedLists.some((list) => listName.match(list));
+
+    const regExp = RegExp(listName, 'g');
+    return accountConfig.includedLists.some((list) => regExp.exec(list));
   }
 
   setTaskServiceWithCredentials(token: Token): void {
