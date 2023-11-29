@@ -1,8 +1,8 @@
 # MMM-GoogleTasks
 
-![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/spyder007/MMM-GoogleTasks/node.yml)
-![Sonar Coverage](https://img.shields.io/sonar/coverage/spyder007_MMM-GoogleTasks/main?server=https%3A%2F%2Fsonarcloud.io)
-![Sonar Violations (long format)](https://img.shields.io/sonar/violations/spyder007_MMM-GoogleTasks/main?server=https%3A%2F%2Fsonarcloud.io&label=sonar%20violations)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/spydersoft-consulting/MMM-GoogleTasks/node.yml)
+![Sonar Coverage](https://img.shields.io/sonar/coverage/spydersoft-consulting_MMM-GoogleTasks/main?server=https%3A%2F%2Fsonarcloud.io)
+![Sonar Violations (long format)](https://img.shields.io/sonar/violations/spydersoft-consulting_MMM-GoogleTasks/main?server=https%3A%2F%2Fsonarcloud.io&label=sonar%20violations)
 
 Module for the [MagicMirror²](https://github.com/MichMich/MagicMirror/) smart mirror.
 
@@ -23,7 +23,7 @@ To install the module, use your terminal to:
 1. Navigate to your MagicMirror's modules folder. If you are using the default installation directory, use the command:
    `cd ~/MagicMirror/modules`
 2. Clone the module:
-   `git clone https://github.com/spyder007/MMM-GoogleTasks.git`
+   `git clone https://github.com/spydersoft-consulting/MMM-GoogleTasks.git`
 3. Run NPM Install to install and transpile:
    `npm install`
 
