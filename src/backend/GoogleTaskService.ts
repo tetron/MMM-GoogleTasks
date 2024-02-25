@@ -27,8 +27,11 @@ export class GoogleTaskService {
       return;
     }
     this.pending = true;
-
-    return this.getTasksForAllAccounts(this.dataConfig.plannedTasks.enable);
+    try {
+      return await this.getTasksForAllAccounts(this.dataConfig.plannedTasks.enable);
+    } finally {
+      this.pending = false;
+    }
   }
 
   async getListTasks(accountConfig: AccountConfig, listId: string, maxResults: number, showCompleted: boolean, showHidden: boolean, maxDate?: string): Promise<Display.Task[]> {

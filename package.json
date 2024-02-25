@@ -68,6 +68,7 @@
 	"dependencies": {
 		"commander": "^11.1.0",
 		"date-fns": "^2.30.0",
-		"googleapis": "^127.0.0"
+		"googleapis": "^127.0.0",
+		"tslib": "^2.6.2"
 	}
 }

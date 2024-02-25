@@ -80,6 +80,7 @@ Module.register<Config>("MMM-GoogleTasks", {
       this.getLogger().info("Requesting task update");
       this.isScheduled = false;
       this.sendSocketNotification(ModuleNotification.RETRIEVE, {});
+      this.scheduleUpdate();
     }, nextLoad);
   },
 
